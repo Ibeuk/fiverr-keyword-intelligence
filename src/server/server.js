@@ -9,12 +9,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FiverrSearchProcessor } from '../core/parser.js';
 import { FiverrStorage } from './storage.js';
+import { FiverrBackgroundScraper } from './scraper.js';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
 const publicDir = path.resolve(process.cwd(), 'public');
 
 const processor = new FiverrSearchProcessor({ minimumOrderThreshold: 30 });
 const storage = new FiverrStorage();
+const scraper = new FiverrBackgroundScraper();
 
 // Pure empty initial state - zero invented or pre-seeded data
 
@@ -85,6 +87,45 @@ const server = http.createServer((req, res) => {
         return sendJson(res, 200, { success: true, message: `Keyword '${keyword}' added to queue.` });
       } catch (e) {
         return sendJson(res, 400, { success: false, message: 'Invalid JSON body.' });
+      }
+    });
+    return;
+  }
+
+  if (pathname === '/api/v1/search' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { keyword } = JSON.parse(body);
+        if (!keyword || !keyword.trim()) {
+          return sendJson(res, 400, { success: false, message: 'Keyword is required.' });
+        }
+
+        console.log(`[Server] Background research requested for: "${keyword}"`);
+        const capture = await scraper.searchFiverr(keyword);
+        const analysis = processor.process(capture);
+
+        const updatedRankings = storage.saveAnalysis(analysis);
+        const myRank = updatedRankings.find(r => r.keyword.toLowerCase() === analysis.keyword.toLowerCase())?.rank || 1;
+
+        return sendJson(res, 200, {
+          success: true,
+          rank: myRank,
+          keyword: analysis.keyword,
+          Tns: analysis.Tns,
+          Tno: analysis.Tno,
+          Nso: analysis.Nso,
+          average: analysis.average,
+          strategicOpportunity: analysis.strategicOpportunity,
+          analysis
+        });
+      } catch (err) {
+        console.error('[Server] Search error:', err.message);
+        return sendJson(res, 500, {
+          success: false,
+          message: `Failed to research Fiverr in background: ${err.message}`
+        });
       }
     });
     return;

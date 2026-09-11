@@ -737,84 +737,78 @@
       lucide.createIcons();
     }
 
-    let pollTimer = null;
-
-    function handleSearch(e) {
-      e.preventDefault();
+    async function handleSearch(e) {
+      if (e) e.preventDefault();
       const kwInput = document.getElementById('keywordInput');
       const analyzeBtn = document.getElementById('analyzeBtn');
       const kw = kwInput.value.trim();
       if (!kw) return;
       
       analyzeBtn.disabled = true;
-      analyzeBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Analyzing Live Fiverr...`;
+      analyzeBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Searching Fiverr Live...`;
       lucide.createIcons();
 
-      // Launch live Fiverr search in Chrome with auto-sync trigger (?fki_auto=1)
-      const fiverrSearchUrl = `https://www.fiverr.com/search/gigs?query=${encodeURIComponent(kw)}&fki_auto=1`;
-      window.open(fiverrSearchUrl, '_blank');
+      try {
+        const res = await fetch('/api/v1/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyword: kw })
+        });
 
-      // Poll local engine for verified results
-      let attempts = 0;
-      clearInterval(pollTimer);
-      pollTimer = setInterval(async () => {
-        attempts++;
-        try {
-          const res = await fetch(`/api/v1/analyses/${encodeURIComponent(kw)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.analysis) {
-              clearInterval(pollTimer);
-              analyzeBtn.disabled = false;
-              analyzeBtn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> Analyze Fiverr`;
-              lucide.createIcons();
-              
-              currentActiveAnalysis = data.analysis;
-              renderKeywordDetail(data.analysis);
-              loadRankings();
-              switchTab('detail');
-              return;
-            }
-          }
-        } catch (err) {
-          // Keep polling
+        const data = await res.json();
+        if (res.ok && data.success && data.analysis) {
+          currentActiveAnalysis = data.analysis;
+          renderKeywordDetail(data.analysis);
+          await loadRankings();
+          switchTab('detail');
+        } else {
+          alert(data.message || 'Unable to complete Fiverr search. Please check your connection.');
         }
+      } catch (err) {
+        console.error('Search request failed:', err);
+        alert('Network or server error while researching Fiverr: ' + err.message);
+      } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> Analyze Fiverr`;
+        lucide.createIcons();
+      }
+    }
 
-        if (attempts > 20) { // 30 seconds timeout
-          clearInterval(pollTimer);
+    async function reanalyzeCurrentKeyword() {
+      if (!currentActiveAnalysis) return;
+      const kw = currentActiveAnalysis.keyword;
+      const analyzeBtn = document.getElementById('analyzeBtn');
+      if (analyzeBtn) {
+        analyzeBtn.disabled = true;
+        analyzeBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Re-analyzing Live...`;
+        lucide.createIcons();
+      }
+
+      try {
+        const res = await fetch('/api/v1/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keyword: kw })
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success && data.analysis) {
+          currentActiveAnalysis = data.analysis;
+          renderKeywordDetail(data.analysis);
+          await loadRankings();
+        } else {
+          alert(data.message || 'Unable to re-analyze keyword.');
+        }
+      } catch (err) {
+        console.error('Re-analysis failed:', err);
+        alert('Re-analysis error: ' + err.message);
+      } finally {
+        if (analyzeBtn) {
           analyzeBtn.disabled = false;
           analyzeBtn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i> Analyze Fiverr`;
           lucide.createIcons();
         }
-      }, 1500);
-    }
-
-    function reanalyzeCurrentKeyword() {
-      if (!currentActiveAnalysis) return;
-      const kw = currentActiveAnalysis.keyword;
-      const fiverrSearchUrl = `https://www.fiverr.com/search/gigs?query=${encodeURIComponent(kw)}&fki_auto=1`;
-      window.open(fiverrSearchUrl, '_blank');
-      
-      // Auto-poll
-      let attempts = 0;
-      clearInterval(pollTimer);
-      pollTimer = setInterval(async () => {
-        attempts++;
-        try {
-          const res = await fetch(`/api/v1/analyses/${encodeURIComponent(kw)}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.success && data.analysis) {
-              clearInterval(pollTimer);
-              currentActiveAnalysis = data.analysis;
-              renderKeywordDetail(data.analysis);
-              loadRankings();
-              return;
-            }
-          }
-        } catch (err) {}
-        if (attempts > 20) clearInterval(pollTimer);
-      }, 1500);
+      }
     }
 
     function openImportModal() { document.getElementById('importModal').classList.remove('hidden'); }

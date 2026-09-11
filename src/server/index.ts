@@ -52,7 +52,7 @@ app.get('/api/v1/analyses', (req: Request, res: Response) => {
 
 // Single Keyword Analysis Detail
 app.get('/api/v1/analyses/:keyword', (req: Request, res: Response) => {
-  const keyword = req.params.keyword;
+  const keyword = Array.isArray(req.params.keyword) ? req.params.keyword[0] : req.params.keyword;
   const analysis = storage.getAnalysis(keyword);
   if (!analysis) {
     return res.status(404).json({ success: false, message: `Keyword '${keyword}' not found in database.` });
@@ -77,7 +77,8 @@ app.post('/api/v1/queue', (req: Request, res: Response) => {
 
 // Historical Tracking
 app.get('/api/v1/history/:keyword', (req: Request, res: Response) => {
-  const history = storage.getHistory(req.params.keyword);
+  const keyword = Array.isArray(req.params.keyword) ? req.params.keyword[0] : req.params.keyword;
+  const history = storage.getHistory(keyword);
   res.json({ success: true, history });
 });
 
