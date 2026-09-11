@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Fiverr Intelligence Collector",
+  "version": "1.0.0",
+  "description": "Extracts verified real-time search-result data from Fiverr for the Intelligence Engine.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Fiverr Keyword Intelligence"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.fiverr.com/search/gigs*",
+    "http://localhost:3001/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.fiverr.com/*"],
+      "js": ["collector.js"],
+      "css": ["injected.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

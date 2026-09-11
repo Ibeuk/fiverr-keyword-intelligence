@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Fiverr Intelligence</title>
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 12px;
+    }
+    .logo-badge {
+      background: #10b981;
+      color: #0f172a;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    h2 {
+      font-size: 15px;
+      margin: 0;
+      font-weight: 700;
+    }
+    .status-card {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      color: #94a3b8;
+    }
+    .status-row:last-child { margin-bottom: 0; }
+    .status-val { color: #f8fafc; font-weight: 600; }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 8px;
+    }
+    .btn-primary {
+      background: #10b981;
+      color: #0f172a;
+    }
+    .btn-primary:hover { background: #059669; }
+    .btn-secondary {
+      background: #334155;
+      color: #f8fafc;
+    }
+    .btn-secondary:hover { background: #475569; }
+    .footer {
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="logo-badge">FKI</span>
+    <h2>Fiverr Intelligence Collector</h2>
+  </div>
+
+  <div class="status-card">
+    <div class="status-row">
+      <span>Backend Status:</span>
+      <span id="backendStatus" class="status-val">Checking...</span>
+    </div>
+    <div class="status-row">
+      <span>Target Site:</span>
+      <span class="status-val">fiverr.com</span>
+    </div>
+  </div>
+
+  <button id="syncBtn" class="btn btn-primary">⚡ Sync Current Fiverr Page</button>
+  <button id="openDashboardBtn" class="btn btn-secondary">📊 Open Research Dashboard</button>
+
+  <div class="footer">
+    Verified Real-Time Market Intelligence
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

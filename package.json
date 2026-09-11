@@ -1,0 +1,33 @@
+{
+  "name": "fiverr-keyword-intelligence",
+  "version": "1.0.0",
+  "description": "Advanced Fiverr Keyword Intelligence & Market Research Engine",
+  "type": "module",
+  "main": "dist/server/index.js",
+  "scripts": {
+    "test": "node --test src/tests/engine.test.js",
+    "test:ts": "tsx --test src/tests/engine.test.ts",
+    "build": "tsc",
+    "start": "node src/server/server.js",
+    "start:express": "tsx src/server/index.ts",
+    "dev": "node --watch src/server/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.5",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  },
+  "keywords": [
+    "fiverr",
+    "keyword-research",
+    "market-intelligence"
+  ],
+  "author": "",
+  "license": "MIT"
+}
