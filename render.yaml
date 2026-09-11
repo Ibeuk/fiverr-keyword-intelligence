@@ -1,10 +1,14 @@
 services:
   - type: web
     name: fiverr-keyword-intelligence
-    runtime: docker
+    runtime: node
     plan: free
+    buildCommand: ./render-build.sh
+    startCommand: node src/server/server.js
     envVars:
       - key: PORT
         value: 10000
       - key: NODE_ENV
         value: production
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/.cache/puppeteer
