@@ -4,31 +4,82 @@
  * completely in the background without opening any user-visible windows or tabs.
  */
 
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 export class FiverrBackgroundScraper {
   constructor() {
     this.chromePath = this.resolveChromePath();
   }
 
+  findPuppeteerCacheChrome() {
+    const searchDirs = [
+      path.join(os.homedir(), '.cache', 'puppeteer'),
+      '/opt/render/.cache/puppeteer',
+      path.join(process.cwd(), '.cache', 'puppeteer')
+    ];
+    for (const base of searchDirs) {
+      if (!fs.existsSync(base)) continue;
+      try {
+        const queue = [base];
+        while (queue.length > 0) {
+          const curr = queue.shift();
+          const entries = fs.readdirSync(curr, { withFileTypes: true });
+          for (const entry of entries) {
+            const full = path.join(curr, entry.name);
+            if (entry.isDirectory()) {
+              queue.push(full);
+            } else if (entry.isFile()) {
+              if (entry.name === 'chrome' || entry.name === 'chrome-headless-shell' || entry.name === 'chrome.exe') {
+                return full;
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
+    return undefined;
+  }
+
   resolveChromePath() {
     if (process.env.CHROME_BIN && fs.existsSync(process.env.CHROME_BIN)) {
       return process.env.CHROME_BIN;
     }
-    const standardPaths = [
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    if (process.env.PUPPETEER_EXECUTABLE_PATH && fs.existsSync(process.env.PUPPETEER_EXECUTABLE_PATH)) {
+      return process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
+    const candidatePaths = [
+      // Linux binaries (Docker / Render / Ubuntu / Alpine)
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
       '/usr/bin/google-chrome-stable',
       '/usr/bin/google-chrome',
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser'
+      // Windows binaries
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
     ];
-    for (const p of standardPaths) {
-      if (fs.existsSync(p)) return p;
+
+    if (process.env.LOCALAPPDATA) {
+      candidatePaths.push(
+        path.join(process.env.LOCALAPPDATA, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(process.env.LOCALAPPDATA, 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+      );
     }
-    return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+
+    for (const p of candidatePaths) {
+      if (p && fs.existsSync(p)) return p;
+    }
+
+    // Check if downloaded into puppeteer cache directory
+    const cachedChrome = this.findPuppeteerCacheChrome();
+    if (cachedChrome) return cachedChrome;
+
+    return undefined;
   }
 
   async searchFiverr(keyword) {
@@ -36,18 +87,43 @@ export class FiverrBackgroundScraper {
     const cleanKw = keyword.trim();
     const searchUrl = `https://www.fiverr.com/search/gigs?query=${encodeURIComponent(cleanKw)}`;
 
-    const browser = await puppeteer.launch({
-      executablePath: this.chromePath,
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-infobars',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process',
+      '--window-size=1920,1080',
+      '--lang=en-US,en'
+    ];
+
+    const resolved = this.resolveChromePath();
+    const launchOptions = {
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-infobars',
-        '--window-size=1920,1080',
-        '--lang=en-US,en'
-      ]
-    });
+      args: launchArgs
+    };
+
+    if (resolved) {
+      launchOptions.executablePath = resolved;
+      console.log(`[Background Scraper] Using resolved browser binary: ${resolved}`);
+    } else {
+      console.log(`[Background Scraper] No system browser path matched. Launching default Puppeteer bundle.`);
+    }
+
+    let browser;
+    try {
+      browser = await puppeteer.launch(launchOptions);
+    } catch (launchErr) {
+      console.error(`[Background Scraper] Puppeteer launch failed:`, launchErr.message);
+      throw new Error(
+        `Headless browser could not be launched on host: ${launchErr.message}. ` +
+        `If running on Render: Switch your service to Docker runtime in Settings, or add build command 'npm install && npx puppeteer browsers install chrome'.`
+      );
+    }
 
     try {
       const page = await browser.newPage();
