@@ -188,7 +188,13 @@
       }
 
       try {
-        const response = await fetch('http://localhost:3001/api/v1/ingest', {
+        let serverUrl = 'http://localhost:3001';
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          const stored = await chrome.storage.local.get(['fki_server_url']);
+          if (stored.fki_server_url) serverUrl = stored.fki_server_url.replace(/\/+$/, '');
+        }
+
+        const response = await fetch(`${serverUrl}/api/v1/ingest`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -204,7 +210,7 @@
         }
       } catch (err) {
         btn.className = 'fki-btn fki-error';
-        btn.innerHTML = `❌ Engine offline (Start localhost:3001)`;
+        btn.innerHTML = `❌ Engine offline (Check server URL)`;
         console.error('[Fiverr Intelligence] Transmission error:', err);
       }
     });

@@ -158,10 +158,10 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`\n========================================================`);
   console.log(`🚀 FIVERR KEYWORD INTELLIGENCE ENGINE RUNNING`);
-  console.log(`📍 Web Dashboard: http://localhost:${PORT}`);
-  console.log(`📡 Ingestion API: http://localhost:${PORT}/api/v1/ingest`);
+  console.log(`📍 Web Dashboard: http://0.0.0.0:${PORT}`);
+  console.log(`📡 Ingestion API: http://0.0.0.0:${PORT}/api/v1/ingest`);
   console.log(`========================================================\n`);
 });
